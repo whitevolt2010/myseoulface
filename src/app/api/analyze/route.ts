@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest } from "next/server";
 import { saveAnalysisData } from "@/lib/storage";
+import { appendToSheet } from "@/lib/sheets";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -162,6 +163,9 @@ export async function POST(request: NextRequest) {
 
     // 분석 결과 + 이메일 저장 (사진 없이)
     saveAnalysisData({ ...data, email: email || null }).catch(() => {});
+
+    // Google Sheets에 이메일 + 분석 요약 저장
+    appendToSheet({ ...data, email: email || undefined }).catch(() => {});
 
     return Response.json(data);
   } catch (error) {
