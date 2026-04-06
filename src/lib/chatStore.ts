@@ -1,5 +1,14 @@
-// In-memory chat store (서버 재시작 시 초기화됨)
-// 프로덕션에서는 Redis나 DB로 교체 가능
+import { Storage } from "@google-cloud/storage";
+
+// GCS 기반 채팅 저장소 (서버리스에서도 영구 저장)
+const credentials = JSON.parse(
+  Buffer.from(process.env.GCS_KEY_BASE64 || "", "base64").toString()
+);
+const storage = new Storage({ credentials });
+const bucket = storage.bucket(process.env.GCS_BUCKET || "seoulface-data");
+
+const CHAT_FILE = "chat/rooms.json";
+const STATUS_FILE = "chat/admin-status.json";
 
 export interface ChatMessage {
   id: string;
@@ -18,37 +27,75 @@ export interface ChatRoom {
   messages: ChatMessage[];
 }
 
-// 관리자 온라인 상태
-let adminOnline = false;
-let adminLastSeen = 0;
-
-// 채팅방 저장소
-const rooms = new Map<string, ChatRoom>();
-
-export function setAdminOnline(online: boolean) {
-  adminOnline = online;
-  if (online) adminLastSeen = Date.now();
+interface ChatData {
+  rooms: Record<string, ChatRoom>;
 }
 
-export function isAdminOnline(): boolean {
-  // 30초 이내 heartbeat가 있으면 온라인
-  return adminOnline && (Date.now() - adminLastSeen < 30000);
+interface AdminStatus {
+  online: boolean;
+  lastSeen: number;
 }
 
-export function updateAdminHeartbeat() {
-  adminLastSeen = Date.now();
-  adminOnline = true;
+// ====== GCS 읽기/쓰기 ======
+
+async function readJSON<T>(path: string, fallback: T): Promise<T> {
+  try {
+    const [content] = await bucket.file(path).download();
+    return JSON.parse(content.toString());
+  } catch {
+    return fallback;
+  }
 }
 
-export function getRoom(roomId: string): ChatRoom | undefined {
-  return rooms.get(roomId);
+async function writeJSON(path: string, data: unknown): Promise<void> {
+  await bucket.file(path).save(JSON.stringify(data), {
+    contentType: "application/json",
+  });
 }
 
-export function getAllRooms(): ChatRoom[] {
-  return Array.from(rooms.values()).sort((a, b) => b.lastTime - a.lastTime);
+// ====== 관리자 상태 ======
+
+export async function setAdminOnline(online: boolean): Promise<void> {
+  await writeJSON(STATUS_FILE, { online, lastSeen: Date.now() });
 }
 
-export function addMessage(roomId: string, from: "user" | "admin", text: string, userName?: string): ChatMessage {
+export async function isAdminOnline(): Promise<boolean> {
+  const status = await readJSON<AdminStatus>(STATUS_FILE, { online: false, lastSeen: 0 });
+  return status.online && (Date.now() - status.lastSeen < 30000);
+}
+
+export async function updateAdminHeartbeat(): Promise<void> {
+  await writeJSON(STATUS_FILE, { online: true, lastSeen: Date.now() });
+}
+
+// ====== 채팅방 ======
+
+async function loadChat(): Promise<ChatData> {
+  return readJSON<ChatData>(CHAT_FILE, { rooms: {} });
+}
+
+async function saveChat(data: ChatData): Promise<void> {
+  await writeJSON(CHAT_FILE, data);
+}
+
+export async function getRoom(roomId: string): Promise<ChatRoom | null> {
+  const data = await loadChat();
+  return data.rooms[roomId] || null;
+}
+
+export async function getAllRooms(): Promise<ChatRoom[]> {
+  const data = await loadChat();
+  return Object.values(data.rooms).sort((a, b) => b.lastTime - a.lastTime);
+}
+
+export async function addMessage(
+  roomId: string,
+  from: "user" | "admin",
+  text: string,
+  userName?: string
+): Promise<ChatMessage> {
+  const data = await loadChat();
+
   const msg: ChatMessage = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
     roomId,
@@ -57,33 +104,36 @@ export function addMessage(roomId: string, from: "user" | "admin", text: string,
     timestamp: Date.now(),
   };
 
-  let room = rooms.get(roomId);
-  if (!room) {
-    room = {
+  if (!data.rooms[roomId]) {
+    data.rooms[roomId] = {
       id: roomId,
       userName: userName || "Guest",
       lastMessage: text,
       lastTime: Date.now(),
-      unread: from === "user" ? 1 : 0,
+      unread: 0,
       messages: [],
     };
-    rooms.set(roomId, room);
   }
 
+  const room = data.rooms[roomId];
   room.messages.push(msg);
   room.lastMessage = text;
   room.lastTime = Date.now();
   if (from === "user") room.unread++;
 
-  // 최대 200개 메시지만 유지
-  if (room.messages.length > 200) {
-    room.messages = room.messages.slice(-200);
+  // 최대 100개 메시지만 유지
+  if (room.messages.length > 100) {
+    room.messages = room.messages.slice(-100);
   }
 
+  await saveChat(data);
   return msg;
 }
 
-export function markRoomRead(roomId: string) {
-  const room = rooms.get(roomId);
-  if (room) room.unread = 0;
+export async function markRoomRead(roomId: string): Promise<void> {
+  const data = await loadChat();
+  if (data.rooms[roomId]) {
+    data.rooms[roomId].unread = 0;
+    await saveChat(data);
+  }
 }

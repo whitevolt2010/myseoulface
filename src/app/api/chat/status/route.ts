@@ -1,20 +1,22 @@
 import { NextRequest } from "next/server";
 import { updateAdminHeartbeat, setAdminOnline, isAdminOnline } from "@/lib/chatStore";
 
-// 관리자 heartbeat / 상태 변경
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   const { action } = await request.json();
 
   if (action === "heartbeat") {
-    updateAdminHeartbeat();
+    await updateAdminHeartbeat();
   } else if (action === "offline") {
-    setAdminOnline(false);
+    await setAdminOnline(false);
   }
 
-  return Response.json({ adminOnline: isAdminOnline() });
+  const online = await isAdminOnline();
+  return Response.json({ adminOnline: online });
 }
 
-// 온라인 상태 확인
 export async function GET() {
-  return Response.json({ adminOnline: isAdminOnline() });
+  const online = await isAdminOnline();
+  return Response.json({ adminOnline: online });
 }

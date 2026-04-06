@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
-import { addMessage, isAdminOnline } from "@/lib/chatStore";
+import { addMessage, isAdminOnline, getRoom } from "@/lib/chatStore";
+
+export const dynamic = "force-dynamic";
 
 // 고객이 메시지 보내기
 export async function POST(request: NextRequest) {
@@ -8,11 +10,12 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Missing roomId or message" }, { status: 400 });
   }
 
-  const msg = addMessage(roomId, "user", message, userName);
-  return Response.json({ ok: true, message: msg, adminOnline: isAdminOnline() });
+  const msg = await addMessage(roomId, "user", message, userName);
+  const online = await isAdminOnline();
+  return Response.json({ ok: true, message: msg, adminOnline: online });
 }
 
-// 고객이 메시지 폴링 (새 관리자 답변 확인)
+// 고객이 메시지 폴링
 export async function GET(request: NextRequest) {
   const roomId = request.nextUrl.searchParams.get("roomId");
   const after = parseInt(request.nextUrl.searchParams.get("after") || "0");
@@ -21,9 +24,9 @@ export async function GET(request: NextRequest) {
     return Response.json({ error: "Missing roomId" }, { status: 400 });
   }
 
-  const { getRoom } = await import("@/lib/chatStore");
-  const room = getRoom(roomId);
+  const room = await getRoom(roomId);
   const messages = room?.messages.filter((m) => m.timestamp > after) || [];
+  const online = await isAdminOnline();
 
-  return Response.json({ messages, adminOnline: isAdminOnline() });
+  return Response.json({ messages, adminOnline: online });
 }
