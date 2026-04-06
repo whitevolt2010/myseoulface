@@ -5,12 +5,12 @@ export const dynamic = "force-dynamic";
 
 // 고객이 메시지 보내기
 export async function POST(request: NextRequest) {
-  const { roomId, message, userName } = await request.json();
+  const { roomId, message, userName, userInfo } = await request.json();
   if (!roomId || !message) {
     return Response.json({ error: "Missing roomId or message" }, { status: 400 });
   }
 
-  const msg = await addMessage(roomId, "user", message, userName);
+  const msg = await addMessage(roomId, "user", message, userName, userInfo);
   const online = await isAdminOnline();
   return Response.json({ ok: true, message: msg, adminOnline: online });
 }

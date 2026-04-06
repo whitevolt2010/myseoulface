@@ -10,17 +10,44 @@ interface Message {
   timestamp?: number;
 }
 
+interface UserInfo {
+  email?: string;
+  skinType?: string;
+  skinScore?: number;
+  skinAge?: number;
+}
+
+function getUserInfo(): UserInfo {
+  if (typeof window === "undefined") return {};
+  try {
+    const result = sessionStorage.getItem("seoulface-result");
+    if (!result) return {};
+    const data = JSON.parse(result);
+    return {
+      email: data.email || undefined,
+      skinType: data.skinType || undefined,
+      skinScore: data.overallScore || undefined,
+      skinAge: data.skinAge || undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [adminOnline, setAdminOnline] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [roomId] = useState(() => {
     if (typeof window !== "undefined") {
-      let id = sessionStorage.getItem("chat-room-id");
+      // localStorage로 변경 — 탭 닫아도 같은 방 유지
+      let id = localStorage.getItem("seoulface-chat-id");
       if (!id) {
         id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-        sessionStorage.setItem("chat-room-id", id);
+        localStorage.setItem("seoulface-chat-id", id);
       }
       return id;
     }
@@ -30,20 +57,18 @@ export default function ChatWidget() {
   const lastTimestamp = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // 스크롤 아래로
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
-  // 알림 소리
   useEffect(() => {
     audioRef.current = new Audio("data:audio/wav;base64,UklGRl4AAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YToAAAA/P0BAP0BAQD8/Pz5APz8+Pj4+PT09PDw8Ozs7Ojo6OTk5ODg4Nzc3NjY2NTU1NDQ0MzMzMjIy");
   }, []);
 
-  // 새 메시지 폴링 (3초마다)
   const pollMessages = useCallback(async () => {
     try {
       const res = await fetch(`/api/chat?roomId=${roomId}&after=${lastTimestamp.current}`);
+      if (!res.ok) return;
       const data = await res.json();
       setAdminOnline(data.adminOnline);
 
@@ -68,7 +93,9 @@ export default function ChatWidget() {
         const maxTs = Math.max(...data.messages.map((m: { timestamp: number }) => m.timestamp));
         if (maxTs > lastTimestamp.current) lastTimestamp.current = maxTs;
       }
-    } catch { /* ignore */ }
+    } catch {
+      // network error — silent
+    }
   }, [roomId]);
 
   useEffect(() => {
@@ -78,11 +105,12 @@ export default function ChatWidget() {
   }, [pollMessages]);
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || sending) return;
     const text = input.trim();
     setInput("");
+    setError(null);
+    setSending(true);
 
-    // 즉시 UI에 표시
     const tempMsg: Message = {
       id: "temp-" + Date.now(),
       text,
@@ -92,22 +120,33 @@ export default function ChatWidget() {
     setMessages((prev) => [...prev, tempMsg]);
 
     try {
+      const userInfo = getUserInfo();
+      const userName = userInfo.email || "Guest";
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomId, message: text, userName: "Guest" }),
+        body: JSON.stringify({ roomId, message: text, userName, userInfo }),
       });
+      if (!res.ok) throw new Error();
       const data = await res.json();
       setAdminOnline(data.adminOnline);
       if (data.message) lastTimestamp.current = data.message.timestamp;
-    } catch { /* ignore */ }
+    } catch {
+      setError("Failed to send. Please try again.");
+    } finally {
+      setSending(false);
+    }
   };
 
-  const totalUnread = messages.filter((m) => m.from === "admin").length;
+  // Quick action buttons for first-time users
+  const quickActions = [
+    "I need help choosing products",
+    "Question about my skin analysis",
+    "Shipping & delivery info",
+  ];
 
   return (
     <>
-      {/* 닫혀있을 때 — 하단 바 */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
@@ -123,7 +162,6 @@ export default function ChatWidget() {
         </button>
       )}
 
-      {/* 열려있을 때 — 채팅창 */}
       {open && (
         <div className="fixed bottom-3 right-3 left-3 sm:left-auto sm:right-5 sm:w-[400px] z-50 h-[75vh] max-h-[700px] rounded-2xl overflow-hidden shadow-2xl border border-card-border flex flex-col bg-white">
           {/* Header */}
@@ -140,7 +178,7 @@ export default function ChatWidget() {
                 ) : (
                   <>
                     <span className="w-2 h-2 rounded-full bg-gray-300 inline-block"></span>
-                    Offline
+                    Offline — We&apos;ll reply soon
                   </>
                 )}
               </p>
@@ -150,21 +188,33 @@ export default function ChatWidget() {
             </button>
           </div>
 
-          {/* 오프라인 안내 */}
           {!adminOnline && (
             <div className="px-4 py-3 bg-amber-50 border-b border-amber-100 text-center">
               <p className="text-sm font-medium text-amber-800">We&apos;re currently away</p>
-              <p className="text-xs text-amber-600 mt-0.5">Leave a message or email us at <a href="mailto:whitevolt2010@gmail.com" className="underline font-medium">whitevolt2010@gmail.com</a></p>
+              <p className="text-xs text-amber-600 mt-0.5">Leave a message — we&apos;ll get back to you!</p>
             </div>
           )}
 
           {/* Messages */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#FAFAF8]">
             {messages.length === 0 && (
-              <div className="text-center py-8">
+              <div className="text-center py-6">
                 <span className="text-4xl block mb-3">👋</span>
                 <p className="font-semibold text-fg text-sm">Welcome to MySeoulFace!</p>
-                <p className="text-xs text-muted mt-1">Ask us anything about K-Beauty skincare</p>
+                <p className="text-xs text-muted mt-1 mb-4">Ask us anything about K-Beauty skincare</p>
+                <div className="space-y-2">
+                  {quickActions.map((text) => (
+                    <button
+                      key={text}
+                      onClick={() => {
+                        setInput(text);
+                      }}
+                      className="block w-full text-left px-4 py-2.5 rounded-xl border border-card-border bg-white text-sm text-fg hover:border-pink transition-colors"
+                    >
+                      {text}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
             {messages.map((m) => (
@@ -186,6 +236,13 @@ export default function ChatWidget() {
             ))}
           </div>
 
+          {/* Error */}
+          {error && (
+            <div className="px-4 py-2 bg-red-50 border-t border-red-100">
+              <p className="text-xs text-red-600">{error}</p>
+            </div>
+          )}
+
           {/* Input */}
           <div className="flex gap-2 p-4 border-t border-card-border bg-white">
             <input
@@ -198,10 +255,10 @@ export default function ChatWidget() {
             />
             <button
               onClick={sendMessage}
-              disabled={!input.trim()}
+              disabled={!input.trim() || sending}
               className="w-11 h-11 rounded-full bg-gradient-to-r from-pink to-coral text-white text-base flex items-center justify-center disabled:opacity-30"
             >
-              →
+              {sending ? "..." : "→"}
             </button>
           </div>
         </div>
