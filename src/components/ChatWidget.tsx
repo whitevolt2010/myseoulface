@@ -1,162 +1,113 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 interface Message {
   id: string;
   text: string;
-  from: "user" | "bot";
+  from: "user" | "admin";
   time: string;
-}
-
-const AUTO_REPLIES: Array<{ keywords: string[]; reply: string }> = [
-  {
-    keywords: ["hello", "hi", "hey", "안녕"],
-    reply: "Hi there! 👋 Welcome to MySeoulFace!\nHow can I help you with your skincare today?",
-  },
-  {
-    keywords: ["help", "what", "how"],
-    reply: "I can help with:\n• Skin analysis questions\n• K-Beauty product advice\n• Skincare routine tips\n• Beauty device recommendations\n\nJust ask me anything! 😊",
-  },
-  {
-    keywords: ["product", "recommend", "suggestion"],
-    reply: "For personalized product recommendations, try our free AI skin analysis! 🔬\n\nJust tap 'Analyze My Skin' on the homepage — it takes 10 seconds and recommends K-Beauty products perfect for YOUR skin.",
-  },
-  {
-    keywords: ["routine", "step", "order"],
-    reply: "Korean 10-Step Routine:\n\n1. 🧴 Oil Cleanser\n2. 🫧 Water Cleanser\n3. ✨ Exfoliant (2-3x/week)\n4. 💧 Toner\n5. 🌸 Essence\n6. ⚡ Serum/Ampoule\n7. 👁️ Eye Cream\n8. 🧊 Moisturizer\n9. 😴 Sleeping Mask (night)\n10. ☀️ Sunscreen (morning)\n\nWant to know which products? Try our free analysis!",
-  },
-  {
-    keywords: ["acne", "pimple", "breakout"],
-    reply: "For acne, these K-Beauty ingredients work great:\n\n• Salicylic Acid (BHA) — unclogs pores\n• Tea Tree — antibacterial\n• Centella Asiatica — calms inflammation\n• Niacinamide — controls sebum\n\nTop picks: COSRX BHA Power Liquid, Some By Mi AHA/BHA/PHA Toner\n\nTry our skin analysis for personalized recommendations! 🔬",
-  },
-  {
-    keywords: ["dry", "flaky", "tight", "dehydrat"],
-    reply: "For dry/dehydrated skin:\n\n• Hyaluronic Acid — deep hydration\n• Ceramides — repairs skin barrier\n• Squalane — locks in moisture\n\nTop picks: Laneige Water Bank, Torriden DIVE-IN Serum, Illiyoon Ceramide Cream\n\nGet your personalized routine with our free analysis! 💧",
-  },
-  {
-    keywords: ["oily", "shine", "greasy", "sebum"],
-    reply: "For oily skin:\n\n• Niacinamide — controls oil production\n• BHA — clears pores\n• Green Tea — reduces sebum\n\nTop picks: Innisfree Green Tea Seed Serum, COSRX Oil-Free Moisturizer\n\nTry our analysis for your complete routine! ✨",
-  },
-  {
-    keywords: ["wrinkle", "aging", "anti-age", "fine line"],
-    reply: "Anti-aging K-Beauty essentials:\n\n• Retinol — cell turnover\n• Peptides — collagen boost\n• Adenosine — wrinkle improvement\n• Vitamin C — brightening + firming\n\nTop picks: Beauty of Joseon Revive Serum, Sulwhasoo Concentrated Ginseng Cream\n\nGet your personalized anti-aging routine! 🔬",
-  },
-  {
-    keywords: ["dark circle", "eye", "puffy"],
-    reply: "For dark circles & puffy eyes:\n\n• Caffeine — reduces puffiness\n• Vitamin K — improves circulation\n• Peptides — firms under-eye area\n• Retinol — thickens thin skin\n\nTop pick: Innisfree Jeju Orchid Eye Cream\nDevice: Ice roller or LED eye mask\n\nTry our analysis for full recommendations! 👁️",
-  },
-  {
-    keywords: ["device", "led", "mask", "tool"],
-    reply: "Top K-Beauty devices:\n\n💡 LED Mask — Cellreturn, CurrentBody\n⚡ Microcurrent — NuFACE, ZIIP\n🔥 RF — Medicube AGE-R, TriPollar\n🧊 Ice Roller — for puffiness\n♨️ Steamer — opens pores\n\nOur AI analysis recommends devices based on YOUR skin concerns!",
-  },
-  {
-    keywords: ["food", "diet", "eat", "supplement"],
-    reply: "Best foods for skin health:\n\n🐟 Salmon/Omega-3 — reduces inflammation\n🫐 Berries — antioxidants\n🥑 Avocado — healthy fats\n🍵 Green Tea — anti-aging\n🦴 Bone Broth/Collagen — elasticity\n🥕 Sweet Potato — vitamin A\n\nOur analysis includes personalized food recommendations!",
-  },
-  {
-    keywords: ["price", "cost", "free", "pay"],
-    reply: "Our skin analysis is 100% FREE! 🎉\n\nNo sign-up, no payment, no catch.\nJust take a selfie and get your results instantly.\n\nProduct links go to Amazon where you can purchase at regular retail prices.",
-  },
-  {
-    keywords: ["sensitive", "redness", "irritat", "rosacea"],
-    reply: "For sensitive/irritated skin:\n\n• Centella Asiatica — calms redness\n• Madecassoside — repairs barrier\n• Aloe Vera — soothes\n• Panthenol — heals\n\nTop picks: SKIN1004 Centella Ampoule, Dr.G Red Blemish Cream\n\nAvoid: fragrance, alcohol, strong acids\n\nTry our analysis for your safe routine! 🌿",
-  },
-];
-
-function getAutoReply(text: string): string {
-  const lower = text.toLowerCase();
-  for (const rule of AUTO_REPLIES) {
-    if (rule.keywords.some((k) => lower.includes(k))) {
-      return rule.reply;
-    }
-  }
-  return "Thanks for your question! 😊\n\nFor the most accurate skincare advice, I recommend trying our free AI skin analysis — it examines your skin and recommends products specifically for you.\n\nTap 'Analyze My Skin' on the homepage to get started!";
+  timestamp?: number;
 }
 
 export default function ChatWidget() {
-  const [open, setOpen] = useState(true);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      text: "Hi! 👋 Welcome to MySeoulFace!\n\nI'm your K-Beauty advisor. Ask me about:\n• Skincare routines\n• Product recommendations\n• Skin concerns (acne, dry, aging...)\n• Beauty devices & skin foods",
-      from: "bot",
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    },
-  ]);
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  const [adminOnline, setAdminOnline] = useState(false);
+  const [roomId] = useState(() => {
+    if (typeof window !== "undefined") {
+      let id = sessionStorage.getItem("chat-room-id");
+      if (!id) {
+        id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        sessionStorage.setItem("chat-room-id", id);
+      }
+      return id;
     }
+    return "temp";
+  });
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastTimestamp = useRef(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // 스크롤 아래로
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
-  const quickSend = (text: string) => {
-    const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const userMsg: Message = { id: Date.now().toString(), text, from: "user", time: now };
-    setMessages((prev) => [...prev, userMsg]);
-    setTimeout(() => {
-      const reply = getAutoReply(text);
-      const botMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        text: reply,
-        from: "bot",
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      };
-      setMessages((prev) => [...prev, botMsg]);
-    }, 600);
-    fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: text }),
-    }).catch(() => {});
-  };
+  // 알림 소리
+  useEffect(() => {
+    audioRef.current = new Audio("data:audio/wav;base64,UklGRl4AAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YToAAAA/P0BAP0BAQD8/Pz5APz8+Pj4+PT09PDw8Ozs7Ojo6OTk5ODg4Nzc3NjY2NTU1NDQ0MzMzMjIy");
+  }, []);
 
-  const sendMessage = () => {
+  // 새 메시지 폴링 (3초마다)
+  const pollMessages = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/chat?roomId=${roomId}&after=${lastTimestamp.current}`);
+      const data = await res.json();
+      setAdminOnline(data.adminOnline);
+
+      if (data.messages && data.messages.length > 0) {
+        const newMsgs: Message[] = data.messages.map((m: { id: string; from: "user" | "admin"; text: string; timestamp: number }) => ({
+          id: m.id,
+          text: m.text,
+          from: m.from,
+          time: new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          timestamp: m.timestamp,
+        }));
+
+        setMessages((prev) => {
+          const ids = new Set(prev.map((m) => m.id));
+          const unique = newMsgs.filter((m) => !ids.has(m.id));
+          if (unique.some((m) => m.from === "admin") && audioRef.current) {
+            audioRef.current.play().catch(() => {});
+          }
+          return [...prev, ...unique];
+        });
+
+        const maxTs = Math.max(...data.messages.map((m: { timestamp: number }) => m.timestamp));
+        if (maxTs > lastTimestamp.current) lastTimestamp.current = maxTs;
+      }
+    } catch { /* ignore */ }
+  }, [roomId]);
+
+  useEffect(() => {
+    const interval = setInterval(pollMessages, 3000);
+    pollMessages();
+    return () => clearInterval(interval);
+  }, [pollMessages]);
+
+  const sendMessage = async () => {
     if (!input.trim()) return;
-    const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-    const userMsg: Message = { id: Date.now().toString(), text: input.trim(), from: "user", time: now };
-    setMessages((prev) => [...prev, userMsg]);
-
-    const userInput = input.trim();
+    const text = input.trim();
     setInput("");
 
-    // Auto reply with typing delay
-    setTimeout(() => {
-      const reply = getAutoReply(userInput);
-      const botMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        text: reply,
-        from: "bot",
-        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      };
-      setMessages((prev) => [...prev, botMsg]);
-    }, 600);
+    // 즉시 UI에 표시
+    const tempMsg: Message = {
+      id: "temp-" + Date.now(),
+      text,
+      from: "user",
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+    setMessages((prev) => [...prev, tempMsg]);
 
-    // Save to server
-    fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: userInput }),
-    }).catch(() => {});
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roomId, message: text, userName: "Guest" }),
+      });
+      const data = await res.json();
+      setAdminOnline(data.adminOnline);
+      if (data.message) lastTimestamp.current = data.message.timestamp;
+    } catch { /* ignore */ }
   };
+
+  const totalUnread = messages.filter((m) => m.from === "admin").length;
 
   return (
     <>
-      {/* Minimize button (when open) */}
-      {open && (
-        <button
-          onClick={() => setOpen(false)}
-          className="fixed bottom-5 right-5 z-50 w-10 h-10 rounded-full bg-fg/10 text-fg text-sm flex items-center justify-center hover:bg-fg/20 transition-all"
-        >
-          ▾
-        </button>
-      )}
-
-      {/* Expand button (when closed) */}
+      {/* 닫혀있을 때 — 하단 바 */}
       {!open && (
         <button
           onClick={() => setOpen(true)}
@@ -164,21 +115,34 @@ export default function ChatWidget() {
         >
           <span className="text-lg">💬</span>
           <span className="font-semibold text-sm">Chat with K-Beauty Advisor</span>
-          <span className="w-5 h-5 rounded-full bg-white/30 text-[10px] flex items-center justify-center font-bold">1</span>
+          {adminOnline ? (
+            <span className="w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-white"></span>
+          ) : (
+            <span className="w-2.5 h-2.5 rounded-full bg-gray-400 border-2 border-white"></span>
+          )}
         </button>
       )}
 
-      {/* Chat window — LARGE */}
+      {/* 열려있을 때 — 채팅창 */}
       {open && (
-        <div className="fixed bottom-16 right-3 left-3 sm:left-auto sm:right-5 sm:w-[420px] z-50 h-[70vh] max-h-[680px] rounded-2xl overflow-hidden shadow-2xl border border-card-border flex flex-col bg-white">
+        <div className="fixed bottom-3 right-3 left-3 sm:left-auto sm:right-5 sm:w-[400px] z-50 h-[75vh] max-h-[700px] rounded-2xl overflow-hidden shadow-2xl border border-card-border flex flex-col bg-white">
           {/* Header */}
           <div className="px-5 py-4 bg-gradient-to-r from-pink to-coral text-white flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-lg">🧴</div>
             <div className="flex-1">
               <p className="font-bold">MySeoulFace</p>
-              <p className="text-xs opacity-80 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-green-300 inline-block"></span>
-                K-Beauty Skin Advisor • Online
+              <p className="text-xs opacity-90 flex items-center gap-1.5">
+                {adminOnline ? (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-green-300 inline-block"></span>
+                    Online — We reply instantly
+                  </>
+                ) : (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-gray-300 inline-block"></span>
+                    Offline
+                  </>
+                )}
               </p>
             </div>
             <button onClick={() => setOpen(false)} className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm hover:bg-white/30">
@@ -186,24 +150,26 @@ export default function ChatWidget() {
             </button>
           </div>
 
-          {/* Quick actions */}
-          <div className="px-4 py-2 bg-pink-lt/10 border-b border-card-border flex gap-2 overflow-x-auto">
-            {["Routine", "Acne", "Dry skin", "Devices", "Foods"].map((q) => (
-              <button
-                key={q}
-                onClick={() => quickSend(q)}
-                className="whitespace-nowrap px-3 py-1 rounded-full bg-white border border-card-border text-xs text-fg hover:border-pink transition-colors"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
+          {/* 오프라인 안내 */}
+          {!adminOnline && (
+            <div className="px-4 py-3 bg-amber-50 border-b border-amber-100 text-center">
+              <p className="text-sm font-medium text-amber-800">We&apos;re currently away</p>
+              <p className="text-xs text-amber-600 mt-0.5">Leave a message or email us at <a href="mailto:whitevolt2010@gmail.com" className="underline font-medium">whitevolt2010@gmail.com</a></p>
+            </div>
+          )}
 
           {/* Messages */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#FAFAF8]">
+            {messages.length === 0 && (
+              <div className="text-center py-8">
+                <span className="text-4xl block mb-3">👋</span>
+                <p className="font-semibold text-fg text-sm">Welcome to MySeoulFace!</p>
+                <p className="text-xs text-muted mt-1">Ask us anything about K-Beauty skincare</p>
+              </div>
+            )}
             {messages.map((m) => (
               <div key={m.id} className={`flex ${m.from === "user" ? "justify-end" : "justify-start"}`}>
-                {m.from === "bot" && (
+                {m.from === "admin" && (
                   <div className="w-7 h-7 rounded-full bg-gradient-to-r from-pink to-coral flex items-center justify-center text-[10px] text-white mr-2 mt-1 flex-shrink-0">
                     🧴
                   </div>
@@ -224,7 +190,7 @@ export default function ChatWidget() {
           <div className="flex gap-2 p-4 border-t border-card-border bg-white">
             <input
               type="text"
-              placeholder="Ask about skincare, products, routines..."
+              placeholder={adminOnline ? "Type a message..." : "Leave a message..."}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
