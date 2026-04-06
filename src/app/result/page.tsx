@@ -5,11 +5,12 @@ import Link from "next/link";
 
 interface SkinResult {
   photo: string;
+  imageQuality?: string;
   skinType: string;
   skinTone: string;
   skinAge: number;
   overallScore: number;
-  concerns: Array<{ name: string; severity: string; description: string }>;
+  concerns: Array<{ name: string; severity: string; zone?: string; description: string }>;
   analysis: Record<string, number>;
   routine: Array<{
     step: string;
@@ -82,6 +83,14 @@ export default function ResultPage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-6 pb-20">
+        {/* Image quality warning */}
+        {result.imageQuality === "poor" && (
+          <div className="w-full mb-4 p-3 rounded-xl bg-coral/10 border border-coral/20 text-center fade-up">
+            <p className="text-sm text-coral font-medium">Low image quality detected</p>
+            <p className="text-xs text-muted mt-1">Retake with better lighting for more accurate results</p>
+          </div>
+        )}
+
         {/* Hero card */}
         <div className="glass p-6 mb-6 fade-up">
           <div className="flex items-center gap-5">
@@ -127,7 +136,7 @@ export default function ResultPage() {
               {result.concerns.map((c, i) => (
                 <div key={i} className={`concern-tag ${severityColor[c.severity] || ""}`}>
                   {c.name}
-                  <span className="text-[10px] opacity-60 ml-1">{c.severity}</span>
+                  {c.zone && <span className="text-[10px] opacity-50 ml-1">({c.zone})</span>}
                 </div>
               ))}
             </div>
