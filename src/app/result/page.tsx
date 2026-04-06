@@ -10,6 +10,7 @@ interface SkinResult {
   skinTone: string;
   skinAge: number;
   overallScore: number;
+  detailedAnalysis?: Record<string, string>;
   concerns: Array<{ name: string; severity: string; zone?: string; description: string }>;
   analysis: Record<string, number>;
   routine: Array<{
@@ -19,6 +20,19 @@ interface SkinResult {
     reason: string;
     priceRange: string;
     keyIngredient: string;
+  }>;
+  devices?: Array<{
+    name: string;
+    brand: string;
+    type: string;
+    reason: string;
+    priceRange: string;
+    usage: string;
+  }>;
+  skinFoods?: Array<{
+    name: string;
+    benefit: string;
+    howToConsume: string;
   }>;
   tips: string[];
   summary: string;
@@ -39,6 +53,31 @@ const analysisLabels: Record<string, string> = {
   texture: "Texture",
   clarity: "Clarity",
   radiance: "Radiance",
+  wrinkles: "Wrinkles",
+  darkCircles: "Dark Circles",
+  acne: "Acne",
+  pigmentation: "Pigmentation",
+};
+
+const zoneLabels: Record<string, string> = {
+  forehead: "Forehead",
+  nose: "Nose",
+  leftCheek: "Left Cheek",
+  rightCheek: "Right Cheek",
+  underEyes: "Under Eyes",
+  jawlineChin: "Jawline & Chin",
+  lips: "Lips",
+  overallTone: "Overall Tone",
+};
+
+const deviceEmoji: Record<string, string> = {
+  LED: "💡",
+  microcurrent: "⚡",
+  RF: "🔥",
+  ultrasonic: "🔊",
+  dermaplaning: "🪒",
+  steamer: "♨️",
+  "ice roller": "🧊",
 };
 
 const severityColor: Record<string, string> = {
@@ -128,15 +167,40 @@ export default function ResultPage() {
           </div>
         </div>
 
+        {/* Detailed Zone Analysis */}
+        {result.detailedAnalysis && (
+          <div className="glass p-5 mb-6 fade-up fade-up-2">
+            <h3 className="font-bold text-fg mb-4">Detailed Face Analysis</h3>
+            <div className="space-y-3">
+              {Object.entries(result.detailedAnalysis).map(([zone, desc]) => (
+                <div key={zone} className="flex items-start gap-3">
+                  <span className="text-xs font-semibold text-pink-dk bg-pink-lt/20 px-2 py-1 rounded-lg whitespace-nowrap mt-0.5">
+                    {zoneLabels[zone] || zone}
+                  </span>
+                  <p className="text-sm text-fg leading-relaxed">{desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Concerns */}
         {result.concerns.length > 0 && (
           <div className="mb-6 fade-up fade-up-2">
             <h3 className="font-bold text-fg mb-3">Skin Concerns</h3>
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-2">
               {result.concerns.map((c, i) => (
-                <div key={i} className={`concern-tag ${severityColor[c.severity] || ""}`}>
-                  {c.name}
-                  {c.zone && <span className="text-[10px] opacity-50 ml-1">({c.zone})</span>}
+                <div key={i} className={`p-3 rounded-xl border ${
+                  c.severity === "severe" ? "bg-coral/5 border-coral/20" :
+                  c.severity === "moderate" ? "bg-gold/5 border-gold/20" :
+                  "bg-mint/5 border-mint/20"
+                }`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-sm text-fg">{c.name}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${severityColor[c.severity] || ""}`}>{c.severity}</span>
+                    {c.zone && <span className="text-[10px] text-muted">({c.zone})</span>}
+                  </div>
+                  <p className="text-xs text-muted">{c.description}</p>
                 </div>
               ))}
             </div>
@@ -186,8 +250,8 @@ export default function ResultPage() {
                       <span className="text-[10px] text-muted">{item.priceRange}</span>
                     </div>
                     <p className="font-semibold text-fg text-sm truncate">{item.brand} — {item.productName}</p>
-                    <p className="text-xs text-muted mt-1">{item.reason}</p>
-                    <span className="inline-block mt-1.5 text-[10px] px-2 py-0.5 rounded-full bg-mint/10 text-mint font-medium">
+                    <p className="text-xs text-fg/70 mt-1 leading-relaxed">{item.reason}</p>
+                    <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full bg-mint/10 text-mint font-medium">
                       {item.keyIngredient}
                     </span>
                   </div>
@@ -197,6 +261,59 @@ export default function ResultPage() {
             ))}
           </div>
         </div>
+
+        {/* Beauty Devices */}
+        {result.devices && result.devices.length > 0 && (
+          <div className="mb-6 fade-up fade-up-4">
+            <h3 className="font-bold text-fg text-lg mb-1">Recommended Beauty Devices</h3>
+            <p className="text-muted text-xs mb-4">Home devices for your skin concerns</p>
+            <div className="space-y-3">
+              {result.devices.map((d, i) => (
+                <a
+                  key={i}
+                  href={getAffiliateLink(d.brand, d.name)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="product-card block"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl">{deviceEmoji[d.type] || "🔧"}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-[10px] font-medium text-lavender uppercase tracking-wider">{d.type}</span>
+                        <span className="text-[10px] text-muted">{d.priceRange}</span>
+                      </div>
+                      <p className="font-semibold text-fg text-sm">{d.brand} — {d.name}</p>
+                      <p className="text-xs text-fg/70 mt-1 leading-relaxed">{d.reason}</p>
+                      <p className="text-[10px] text-muted mt-1">Usage: {d.usage}</p>
+                    </div>
+                    <span className="text-muted text-sm mt-1">→</span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Skin Health Foods */}
+        {result.skinFoods && result.skinFoods.length > 0 && (
+          <div className="glass p-5 mb-6 fade-up fade-up-4">
+            <h3 className="font-bold text-fg mb-1">Skin Health Foods</h3>
+            <p className="text-muted text-xs mb-4">Nourish your skin from the inside</p>
+            <div className="space-y-3">
+              {result.skinFoods.map((f, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <span className="text-lg">🥗</span>
+                  <div>
+                    <p className="font-semibold text-fg text-sm">{f.name}</p>
+                    <p className="text-xs text-fg/70 mt-0.5">{f.benefit}</p>
+                    <p className="text-[10px] text-muted mt-1">{f.howToConsume}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Tips */}
         <div className="glass p-5 mb-6 fade-up fade-up-4">
