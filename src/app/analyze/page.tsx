@@ -13,7 +13,6 @@ export default function AnalyzePage() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
-  const [consent, setConsent] = useState(true);
 
   // stream이 바뀌면 video에 연결
   useEffect(() => {
@@ -76,7 +75,7 @@ export default function AnalyzePage() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: photo, consent }),
+        body: JSON.stringify({ image: photo }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -185,20 +184,6 @@ export default function AnalyzePage() {
             </div>
           )}
         </div>
-
-        {/* Consent */}
-        <label className="flex items-start gap-2 max-w-sm w-full mt-4 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={consent}
-            onChange={(e) => setConsent(e.target.checked)}
-            className="mt-1 accent-pink"
-          />
-          <span className="text-xs text-muted leading-relaxed">
-            I agree that my photo may be used anonymously to improve analysis accuracy.
-            No personal data is collected.
-          </span>
-        </label>
 
         {/* Tips */}
         <div className="mt-10 glass p-5 max-w-sm w-full fade-up fade-up-3">

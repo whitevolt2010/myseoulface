@@ -46,7 +46,7 @@ Be specific with real product names. Be encouraging and positive in tone.`;
 
 export async function POST(request: NextRequest) {
   try {
-    const { image, consent } = await request.json();
+    const { image } = await request.json();
 
     if (!image) {
       return Response.json({ error: "No image provided" }, { status: 400 });
@@ -78,10 +78,8 @@ export async function POST(request: NextRequest) {
 
     const data = JSON.parse(jsonStr);
 
-    // Save to GCS if user consented
-    if (consent) {
-      saveAnalysisData(image, data).catch(() => {});
-    }
+    // 분석 결과만 저장 (사진 없이)
+    saveAnalysisData(data).catch(() => {});
 
     return Response.json(data);
   } catch (error) {
