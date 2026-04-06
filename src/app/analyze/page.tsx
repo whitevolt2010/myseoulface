@@ -12,8 +12,7 @@ export default function AnalyzePage() {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [email, setEmail] = useState("");
-  const [showEmailStep, setShowEmailStep] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
+  const [step, setStep] = useState<"camera" | "email" | "analyzing">("camera");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -51,24 +50,35 @@ export default function AnalyzePage() {
     ctx.translate(c.width, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(v, 0, 0);
-    const dataUrl = c.toDataURL("image/jpeg", 0.85);
-    setPhoto(dataUrl);
+    setPhoto(c.toDataURL("image/jpeg", 0.85));
     stream?.getTracks().forEach((t) => t.stop());
     setStream(null);
     setCameraOn(false);
-    setShowEmailStep(true);
+    setStep("email");
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPhoto(reader.result as string);
+      setCameraOn(false);
+      setStep("email");
+    };
+    reader.readAsDataURL(file);
   };
 
   const retake = () => {
     setPhoto(null);
-    setShowEmailStep(false);
+    setStep("camera");
     setEmail("");
     startCamera();
   };
 
-  const analyze = async () => {
+  const startAnalysis = async () => {
     if (!photo) return;
-    setAnalyzing(true);
+    setStep("analyzing");
     setError("");
 
     try {
@@ -84,20 +94,8 @@ export default function AnalyzePage() {
       router.push("/result");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Analysis failed. Please try again.");
-      setAnalyzing(false);
+      setStep("email");
     }
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPhoto(reader.result as string);
-      setCameraOn(false);
-      setShowEmailStep(true);
-    };
-    reader.readAsDataURL(file);
   };
 
   return (
@@ -107,109 +105,124 @@ export default function AnalyzePage() {
       </header>
 
       <main className="flex-1 flex flex-col items-center px-6 py-8">
-        <h2 className="text-2xl font-bold text-fg mb-2 fade-up">Skin Analysis</h2>
-        <p className="text-muted text-sm mb-8 fade-up fade-up-1">
-          {showEmailStep ? "Almost there! Enter your email to get results" : "Take a clear selfie with good lighting"}
-        </p>
 
-        {/* Camera / Photo */}
-        <div className="camera-frame mb-6 fade-up fade-up-2">
-          {photo ? (
-            <img src={photo} alt="Your selfie" className="w-full h-full object-cover" />
-          ) : cameraOn ? (
-            <>
-              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{ transform: "scaleX(-1)" }} />
-              <div className="camera-guide" />
-            </>
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-pink-lt/20 to-lavender/20">
-              <span className="text-6xl mb-4">📸</span>
-              <p className="text-muted text-sm">Take a selfie or upload a photo</p>
-            </div>
-          )}
-        </div>
+        {/* ===== STEP 1: Camera ===== */}
+        {step === "camera" && (
+          <>
+            <h2 className="text-2xl font-bold text-fg mb-2 fade-up">Skin Analysis</h2>
+            <p className="text-muted text-sm mb-8 fade-up fade-up-1">Take a clear selfie with good lighting</p>
 
-        <canvas ref={canvasRef} className="hidden" />
-
-        {error && (
-          <p className="text-coral text-sm mb-4 text-center max-w-xs">{error}</p>
-        )}
-
-        {/* Step 1: Camera/Upload */}
-        {!showEmailStep && (
-          <div className="flex flex-col items-center gap-3">
-            {!cameraOn && !photo && (
-              <>
-                <button onClick={startCamera} className="btn-primary">Open Camera</button>
-                <label className="btn-secondary cursor-pointer">
-                  Upload Photo
-                  <input type="file" accept="image/*" capture="user" className="hidden" onChange={handleFileUpload} />
-                </label>
-              </>
-            )}
-            {cameraOn && !photo && stream && (
-              <button onClick={takePhoto} className="btn-primary px-12">Take Photo</button>
-            )}
-          </div>
-        )}
-
-        {/* Step 2: Email + Analyze */}
-        {showEmailStep && !analyzing && (
-          <div className="w-full max-w-sm fade-up">
-            <div className="glass p-6 mb-4">
-              <label className="block text-sm font-semibold text-fg mb-2">
-                Get your results via email (optional)
-              </label>
-              <input
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-card-border bg-white text-fg text-sm focus:border-pink focus:outline-none transition-colors"
-              />
-              <p className="text-[10px] text-muted mt-2">
-                We&apos;ll send your personalized K-Beauty routine. No spam, ever.
-              </p>
+            <div className="camera-frame mb-6 fade-up fade-up-2">
+              {cameraOn ? (
+                <>
+                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{ transform: "scaleX(-1)" }} />
+                  <div className="camera-guide" />
+                </>
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-pink-lt/20 to-lavender/20">
+                  <span className="text-6xl mb-4">📸</span>
+                  <p className="text-muted text-sm">Take a selfie or upload a photo</p>
+                </div>
+              )}
             </div>
 
-            <div className="flex gap-3 justify-center">
-              <button onClick={retake} className="btn-secondary">Retake</button>
-              <button onClick={analyze} className="btn-primary">
-                {email ? "Analyze & Send Results" : "Analyze My Skin"}
-              </button>
+            <canvas ref={canvasRef} className="hidden" />
+
+            {error && <p className="text-coral text-sm mb-4 text-center max-w-xs">{error}</p>}
+
+            <div className="flex flex-col items-center gap-3">
+              {!cameraOn && (
+                <>
+                  <button onClick={startCamera} className="btn-primary">Open Camera</button>
+                  <label className="btn-secondary cursor-pointer">
+                    Upload Photo
+                    <input type="file" accept="image/*" capture="user" className="hidden" onChange={handleFileUpload} />
+                  </label>
+                </>
+              )}
+              {cameraOn && stream && (
+                <button onClick={takePhoto} className="btn-primary px-12">Take Photo</button>
+              )}
             </div>
 
-            {!email && (
-              <button onClick={analyze} className="block mx-auto mt-3 text-xs text-muted underline">
-                Skip — analyze without email
-              </button>
-            )}
-          </div>
+            <div className="mt-10 glass p-5 max-w-sm w-full fade-up fade-up-3">
+              <h3 className="font-semibold text-fg text-sm mb-2">Tips for best results</h3>
+              <ul className="text-xs text-muted space-y-1">
+                <li>• Face the camera directly with a neutral expression</li>
+                <li>• Use natural lighting (avoid harsh shadows)</li>
+                <li>• Remove glasses and pull hair back</li>
+                <li>• No filters or makeup for accurate analysis</li>
+              </ul>
+            </div>
+          </>
         )}
 
-        {/* Analyzing */}
-        {analyzing && (
-          <div className="text-center fade-up">
+        {/* ===== STEP 2: Email ===== */}
+        {step === "email" && (
+          <>
+            <h2 className="text-2xl font-bold text-fg mb-2 fade-up">Almost There!</h2>
+            <p className="text-muted text-sm mb-6 fade-up fade-up-1">Would you like to receive your results via email?</p>
+
+            {/* Photo preview */}
+            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-pink-lt mb-8 fade-up fade-up-2">
+              {photo && <img src={photo} alt="Your selfie" className="w-full h-full object-cover" />}
+            </div>
+
+            {error && <p className="text-coral text-sm mb-4 text-center max-w-xs">{error}</p>}
+
+            <div className="w-full max-w-sm fade-up fade-up-3">
+              <div className="glass p-6 mb-6">
+                <div className="text-center mb-4">
+                  <span className="text-4xl">📧</span>
+                </div>
+                <h3 className="font-bold text-fg text-center mb-1">Get Results via Email</h3>
+                <p className="text-xs text-muted text-center mb-4">
+                  We&apos;ll send your full skin analysis report with personalized K-Beauty recommendations
+                </p>
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && email.includes("@") && startAnalysis()}
+                  className="w-full px-4 py-3 rounded-xl border border-card-border bg-white text-fg text-sm focus:border-pink focus:outline-none transition-colors mb-3"
+                />
+                <button
+                  onClick={startAnalysis}
+                  disabled={!email.includes("@")}
+                  className="btn-primary w-full disabled:opacity-30"
+                >
+                  Send Results & Analyze
+                </button>
+              </div>
+
+              <div className="flex gap-3 justify-center">
+                <button onClick={retake} className="btn-secondary text-sm">
+                  Retake Photo
+                </button>
+                <button onClick={startAnalysis} className="text-sm text-muted underline">
+                  Skip — continue without email
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ===== STEP 3: Analyzing ===== */}
+        {step === "analyzing" && (
+          <div className="flex-1 flex flex-col items-center justify-center fade-up">
+            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-pink-lt mb-6 animate-pulse">
+              {photo && <img src={photo} alt="" className="w-full h-full object-cover" />}
+            </div>
             <div className="btn-primary pointer-events-none opacity-80">
               <span className="inline-block animate-spin mr-2">⏳</span>
               Analyzing your skin...
             </div>
-            <p className="text-muted text-xs mt-3">This takes about 10 seconds</p>
+            <p className="text-muted text-xs mt-3">Our AI is examining your skin in detail</p>
+            <p className="text-muted text-[10px] mt-1">This takes about 10-15 seconds</p>
           </div>
         )}
 
-        {/* Tips */}
-        {!showEmailStep && (
-          <div className="mt-10 glass p-5 max-w-sm w-full fade-up fade-up-3">
-            <h3 className="font-semibold text-fg text-sm mb-2">Tips for best results</h3>
-            <ul className="text-xs text-muted space-y-1">
-              <li>• Face the camera directly with a neutral expression</li>
-              <li>• Use natural lighting (avoid harsh shadows)</li>
-              <li>• Remove glasses and pull hair back</li>
-              <li>• No filters or makeup for accurate analysis</li>
-            </ul>
-          </div>
-        )}
       </main>
     </div>
   );

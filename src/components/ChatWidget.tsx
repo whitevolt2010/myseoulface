@@ -9,25 +9,69 @@ interface Message {
   time: string;
 }
 
-const AUTO_REPLIES: Record<string, string> = {
-  hello: "Hi there! 👋 Welcome to MySeoulFace. How can I help you with your skincare?",
-  hi: "Hi there! 👋 Welcome to MySeoulFace. How can I help you with your skincare?",
-  hey: "Hey! 👋 Welcome to MySeoulFace. How can I help you?",
-  help: "I can help you with:\n• Skin analysis questions\n• Product recommendations\n• K-Beauty routine advice\n\nJust type your question!",
-  product: "You can get personalized product recommendations by taking our free skin analysis! Tap 'Analyze My Skin' on the homepage.",
-  routine: "A basic K-Beauty routine:\n1. Oil Cleanser\n2. Water Cleanser\n3. Toner\n4. Serum\n5. Moisturizer\n6. Sunscreen\n\nWant personalized recommendations? Try our free analysis!",
-  price: "Our skin analysis is 100% free! Product recommendations include links where you can purchase them.",
-  acne: "For acne concerns, we recommend ingredients like Salicylic Acid, Tea Tree, and Centella Asiatica. Try our skin analysis for personalized product recommendations!",
-  dry: "For dry skin, look for Hyaluronic Acid, Ceramides, and Squalane. Our AI analysis can recommend the perfect products for your skin!",
-  oily: "For oily skin, Niacinamide, BHA, and Green Tea work great. Take our free skin analysis for personalized recommendations!",
-};
+const AUTO_REPLIES: Array<{ keywords: string[]; reply: string }> = [
+  {
+    keywords: ["hello", "hi", "hey", "안녕"],
+    reply: "Hi there! 👋 Welcome to MySeoulFace!\nHow can I help you with your skincare today?",
+  },
+  {
+    keywords: ["help", "what", "how"],
+    reply: "I can help with:\n• Skin analysis questions\n• K-Beauty product advice\n• Skincare routine tips\n• Beauty device recommendations\n\nJust ask me anything! 😊",
+  },
+  {
+    keywords: ["product", "recommend", "suggestion"],
+    reply: "For personalized product recommendations, try our free AI skin analysis! 🔬\n\nJust tap 'Analyze My Skin' on the homepage — it takes 10 seconds and recommends K-Beauty products perfect for YOUR skin.",
+  },
+  {
+    keywords: ["routine", "step", "order"],
+    reply: "Korean 10-Step Routine:\n\n1. 🧴 Oil Cleanser\n2. 🫧 Water Cleanser\n3. ✨ Exfoliant (2-3x/week)\n4. 💧 Toner\n5. 🌸 Essence\n6. ⚡ Serum/Ampoule\n7. 👁️ Eye Cream\n8. 🧊 Moisturizer\n9. 😴 Sleeping Mask (night)\n10. ☀️ Sunscreen (morning)\n\nWant to know which products? Try our free analysis!",
+  },
+  {
+    keywords: ["acne", "pimple", "breakout"],
+    reply: "For acne, these K-Beauty ingredients work great:\n\n• Salicylic Acid (BHA) — unclogs pores\n• Tea Tree — antibacterial\n• Centella Asiatica — calms inflammation\n• Niacinamide — controls sebum\n\nTop picks: COSRX BHA Power Liquid, Some By Mi AHA/BHA/PHA Toner\n\nTry our skin analysis for personalized recommendations! 🔬",
+  },
+  {
+    keywords: ["dry", "flaky", "tight", "dehydrat"],
+    reply: "For dry/dehydrated skin:\n\n• Hyaluronic Acid — deep hydration\n• Ceramides — repairs skin barrier\n• Squalane — locks in moisture\n\nTop picks: Laneige Water Bank, Torriden DIVE-IN Serum, Illiyoon Ceramide Cream\n\nGet your personalized routine with our free analysis! 💧",
+  },
+  {
+    keywords: ["oily", "shine", "greasy", "sebum"],
+    reply: "For oily skin:\n\n• Niacinamide — controls oil production\n• BHA — clears pores\n• Green Tea — reduces sebum\n\nTop picks: Innisfree Green Tea Seed Serum, COSRX Oil-Free Moisturizer\n\nTry our analysis for your complete routine! ✨",
+  },
+  {
+    keywords: ["wrinkle", "aging", "anti-age", "fine line"],
+    reply: "Anti-aging K-Beauty essentials:\n\n• Retinol — cell turnover\n• Peptides — collagen boost\n• Adenosine — wrinkle improvement\n• Vitamin C — brightening + firming\n\nTop picks: Beauty of Joseon Revive Serum, Sulwhasoo Concentrated Ginseng Cream\n\nGet your personalized anti-aging routine! 🔬",
+  },
+  {
+    keywords: ["dark circle", "eye", "puffy"],
+    reply: "For dark circles & puffy eyes:\n\n• Caffeine — reduces puffiness\n• Vitamin K — improves circulation\n• Peptides — firms under-eye area\n• Retinol — thickens thin skin\n\nTop pick: Innisfree Jeju Orchid Eye Cream\nDevice: Ice roller or LED eye mask\n\nTry our analysis for full recommendations! 👁️",
+  },
+  {
+    keywords: ["device", "led", "mask", "tool"],
+    reply: "Top K-Beauty devices:\n\n💡 LED Mask — Cellreturn, CurrentBody\n⚡ Microcurrent — NuFACE, ZIIP\n🔥 RF — Medicube AGE-R, TriPollar\n🧊 Ice Roller — for puffiness\n♨️ Steamer — opens pores\n\nOur AI analysis recommends devices based on YOUR skin concerns!",
+  },
+  {
+    keywords: ["food", "diet", "eat", "supplement"],
+    reply: "Best foods for skin health:\n\n🐟 Salmon/Omega-3 — reduces inflammation\n🫐 Berries — antioxidants\n🥑 Avocado — healthy fats\n🍵 Green Tea — anti-aging\n🦴 Bone Broth/Collagen — elasticity\n🥕 Sweet Potato — vitamin A\n\nOur analysis includes personalized food recommendations!",
+  },
+  {
+    keywords: ["price", "cost", "free", "pay"],
+    reply: "Our skin analysis is 100% FREE! 🎉\n\nNo sign-up, no payment, no catch.\nJust take a selfie and get your results instantly.\n\nProduct links go to Amazon where you can purchase at regular retail prices.",
+  },
+  {
+    keywords: ["sensitive", "redness", "irritat", "rosacea"],
+    reply: "For sensitive/irritated skin:\n\n• Centella Asiatica — calms redness\n• Madecassoside — repairs barrier\n• Aloe Vera — soothes\n• Panthenol — heals\n\nTop picks: SKIN1004 Centella Ampoule, Dr.G Red Blemish Cream\n\nAvoid: fragrance, alcohol, strong acids\n\nTry our analysis for your safe routine! 🌿",
+  },
+];
 
-function getAutoReply(text: string): string | null {
+function getAutoReply(text: string): string {
   const lower = text.toLowerCase();
-  for (const [key, reply] of Object.entries(AUTO_REPLIES)) {
-    if (lower.includes(key)) return reply;
+  for (const rule of AUTO_REPLIES) {
+    if (rule.keywords.some((k) => lower.includes(k))) {
+      return rule.reply;
+    }
   }
-  return null;
+  return "Thanks for your question! 😊\n\nFor the most accurate skincare advice, I recommend trying our free AI skin analysis — it examines your skin and recommends products specifically for you.\n\nTap 'Analyze My Skin' on the homepage to get started!";
 }
 
 export default function ChatWidget() {
@@ -35,14 +79,12 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
-      text: "Hi! 👋 Welcome to MySeoulFace.\nHow can I help you with your skincare today?",
+      text: "Hi! 👋 Welcome to MySeoulFace!\n\nI'm your K-Beauty advisor. Ask me about:\n• Skincare routines\n• Product recommendations\n• Skin concerns (acne, dry, aging...)\n• Beauty devices & skin foods",
       from: "bot",
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
   const [input, setInput] = useState("");
-  const [email, setEmail] = useState("");
-  const [emailSaved, setEmailSaved] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,40 +96,31 @@ export default function ChatWidget() {
   const sendMessage = () => {
     if (!input.trim()) return;
     const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
     const userMsg: Message = { id: Date.now().toString(), text: input.trim(), from: "user", time: now };
     setMessages((prev) => [...prev, userMsg]);
+
+    const userInput = input.trim();
     setInput("");
 
-    // Auto reply
-    const autoReply = getAutoReply(input);
+    // Auto reply with typing delay
     setTimeout(() => {
+      const reply = getAutoReply(userInput);
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
-        text: autoReply || "Thanks for your message! Our team will get back to you soon. In the meantime, try our free skin analysis! 🔬",
+        text: reply,
         from: "bot",
         time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, botMsg]);
-    }, 800);
+    }, 600);
 
-    // Save message to server
+    // Save to server
     fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: input.trim(), email: email || undefined }),
+      body: JSON.stringify({ message: userInput }),
     }).catch(() => {});
-  };
-
-  const saveEmail = () => {
-    if (!email.includes("@")) return;
-    setEmailSaved(true);
-    const botMsg: Message = {
-      id: Date.now().toString(),
-      text: `Great! We'll reach you at ${email}. How can I help you today?`,
-      from: "bot",
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-    setMessages((prev) => [...prev, botMsg]);
   };
 
   return (
@@ -96,62 +129,53 @@ export default function ChatWidget() {
       <button
         onClick={() => setOpen(!open)}
         className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full bg-gradient-to-r from-pink to-coral text-white text-2xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105"
-        style={{ fontFamily: "system-ui" }}
       >
         {open ? "✕" : "💬"}
       </button>
 
+      {/* Unread badge */}
+      {!open && (
+        <span className="fixed bottom-16 right-5 z-50 w-5 h-5 rounded-full bg-coral text-white text-[10px] flex items-center justify-center font-bold pointer-events-none">
+          1
+        </span>
+      )}
+
       {/* Chat window */}
       {open && (
-        <div className="fixed bottom-20 right-5 z-50 w-[340px] max-h-[480px] rounded-2xl overflow-hidden shadow-2xl border border-card-border flex flex-col bg-white"
-          style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>
+        <div className="fixed bottom-20 right-5 z-50 w-[340px] max-h-[480px] rounded-2xl overflow-hidden shadow-2xl border border-card-border flex flex-col bg-white">
           {/* Header */}
-          <div className="px-4 py-3 bg-gradient-to-r from-pink to-coral text-white">
-            <p className="font-bold text-sm">MySeoulFace</p>
-            <p className="text-[10px] opacity-80">K-Beauty Skin Advisor • Online</p>
+          <div className="px-4 py-3 bg-gradient-to-r from-pink to-coral text-white flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm">🧴</div>
+            <div>
+              <p className="font-bold text-sm">MySeoulFace</p>
+              <p className="text-[10px] opacity-80 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-300 inline-block"></span>
+                K-Beauty Advisor • Online
+              </p>
+            </div>
           </div>
 
           {/* Messages */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3 max-h-[280px] bg-[#FAFAF8]">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3 max-h-[320px] bg-[#FAFAF8]">
             {messages.map((m) => (
               <div key={m.id} className={`flex ${m.from === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap ${
+                <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-[13px] leading-relaxed whitespace-pre-wrap ${
                   m.from === "user"
                     ? "bg-gradient-to-r from-pink to-coral text-white rounded-br-sm"
-                    : "bg-white border border-card-border text-fg rounded-bl-sm"
+                    : "bg-white border border-card-border text-fg rounded-bl-sm shadow-sm"
                 }`}>
                   {m.text}
-                  <p className={`text-[9px] mt-1 ${m.from === "user" ? "text-white/60" : "text-muted"}`}>{m.time}</p>
+                  <p className={`text-[9px] mt-1 ${m.from === "user" ? "text-white/50" : "text-muted"}`}>{m.time}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Email prompt (one-time) */}
-          {!emailSaved && (
-            <div className="px-3 py-2 bg-pink-lt/20 border-t border-card-border">
-              <p className="text-[10px] text-fg mb-1.5 font-medium">Get notified when we reply:</p>
-              <div className="flex gap-1.5">
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && saveEmail()}
-                  className="flex-1 px-2.5 py-1.5 rounded-lg border border-card-border text-xs text-fg bg-white focus:border-pink focus:outline-none"
-                />
-                <button onClick={saveEmail} className="px-3 py-1.5 rounded-lg bg-pink text-white text-xs font-medium">
-                  Save
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Input */}
           <div className="flex gap-2 p-3 border-t border-card-border bg-white">
             <input
               type="text"
-              placeholder="Type a message..."
+              placeholder="Ask about skincare..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
@@ -159,7 +183,8 @@ export default function ChatWidget() {
             />
             <button
               onClick={sendMessage}
-              className="w-9 h-9 rounded-full bg-gradient-to-r from-pink to-coral text-white text-sm flex items-center justify-center"
+              disabled={!input.trim()}
+              className="w-9 h-9 rounded-full bg-gradient-to-r from-pink to-coral text-white text-sm flex items-center justify-center disabled:opacity-30"
             >
               →
             </button>
