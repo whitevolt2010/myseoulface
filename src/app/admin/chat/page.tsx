@@ -17,7 +17,7 @@ interface ChatRoom {
   unread: number;
 }
 
-const ADMIN_PASSWORD = "myseoulface2026";
+const ADMIN_PASSWORD = "2026";
 
 export default function AdminChatPage() {
   const [authed, setAuthed] = useState(false);
