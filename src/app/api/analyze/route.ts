@@ -80,7 +80,7 @@ Be specific about what you see. Avoid generic statements. Reference actual visib
 
 export async function POST(request: NextRequest) {
   try {
-    const { image } = await request.json();
+    const { image, email } = await request.json();
 
     if (!image) {
       return Response.json({ error: "No image provided" }, { status: 400 });
@@ -112,8 +112,8 @@ export async function POST(request: NextRequest) {
 
     const data = JSON.parse(jsonStr);
 
-    // 분석 결과만 저장 (사진 없이)
-    saveAnalysisData(data).catch(() => {});
+    // 분석 결과 + 이메일 저장 (사진 없이)
+    saveAnalysisData({ ...data, email: email || null }).catch(() => {});
 
     return Response.json(data);
   } catch (error) {

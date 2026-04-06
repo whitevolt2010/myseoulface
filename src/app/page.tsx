@@ -19,7 +19,7 @@ export default function Home() {
     <div className="gradient-hero min-h-dvh flex flex-col">
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 max-w-5xl mx-auto w-full">
-        <h1 className="text-xl font-bold text-pink-dk">Seoul<span className="text-coral">Face</span></h1>
+        <h1 className="text-xl font-bold text-pink-dk">My<span className="text-coral">SeoulFace</span></h1>
         <Link href="/analyze" className="btn-secondary text-sm py-2 px-5">
           Start Analysis
         </Link>
@@ -78,7 +78,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="text-center py-4 text-xs text-muted">
-        SeoulFace &copy; {new Date().getFullYear()} &middot; K-Beauty Skin Analysis
+        MySeoulFace &copy; {new Date().getFullYear()} &middot; K-Beauty Skin Analysis
       </footer>
     </div>
   );

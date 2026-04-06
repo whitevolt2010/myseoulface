@@ -11,10 +11,11 @@ export default function AnalyzePage() {
   const [cameraOn, setCameraOn] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [showEmailStep, setShowEmailStep] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
 
-  // stream이 바뀌면 video에 연결
   useEffect(() => {
     if (stream && videoRef.current) {
       videoRef.current.srcObject = stream;
@@ -22,11 +23,8 @@ export default function AnalyzePage() {
     }
   }, [stream]);
 
-  // 컴포넌트 언마운트 시 카메라 정리
   useEffect(() => {
-    return () => {
-      stream?.getTracks().forEach((t) => t.stop());
-    };
+    return () => { stream?.getTracks().forEach((t) => t.stop()); };
   }, [stream]);
 
   const startCamera = async () => {
@@ -50,7 +48,6 @@ export default function AnalyzePage() {
     c.width = v.videoWidth;
     c.height = v.videoHeight;
     const ctx = c.getContext("2d")!;
-    // 좌우 반전 (미러)
     ctx.translate(c.width, 0);
     ctx.scale(-1, 1);
     ctx.drawImage(v, 0, 0);
@@ -59,10 +56,13 @@ export default function AnalyzePage() {
     stream?.getTracks().forEach((t) => t.stop());
     setStream(null);
     setCameraOn(false);
+    setShowEmailStep(true);
   };
 
   const retake = () => {
     setPhoto(null);
+    setShowEmailStep(false);
+    setEmail("");
     startCamera();
   };
 
@@ -75,7 +75,7 @@ export default function AnalyzePage() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: photo }),
+        body: JSON.stringify({ image: photo, email: email || undefined }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
@@ -88,7 +88,6 @@ export default function AnalyzePage() {
     }
   };
 
-  // 파일 업로드 대안 (카메라 접근 안 될 때)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -96,6 +95,7 @@ export default function AnalyzePage() {
     reader.onload = () => {
       setPhoto(reader.result as string);
       setCameraOn(false);
+      setShowEmailStep(true);
     };
     reader.readAsDataURL(file);
   };
@@ -103,12 +103,14 @@ export default function AnalyzePage() {
   return (
     <div className="gradient-hero min-h-dvh flex flex-col">
       <header className="flex items-center justify-between px-6 py-4">
-        <Link href="/" className="text-xl font-bold text-pink-dk">Seoul<span className="text-coral">Face</span></Link>
+        <Link href="/" className="text-xl font-bold text-pink-dk">My<span className="text-coral">SeoulFace</span></Link>
       </header>
 
       <main className="flex-1 flex flex-col items-center px-6 py-8">
         <h2 className="text-2xl font-bold text-fg mb-2 fade-up">Skin Analysis</h2>
-        <p className="text-muted text-sm mb-8 fade-up fade-up-1">Take a clear selfie with good lighting</p>
+        <p className="text-muted text-sm mb-8 fade-up fade-up-1">
+          {showEmailStep ? "Almost there! Enter your email to get results" : "Take a clear selfie with good lighting"}
+        </p>
 
         {/* Camera / Photo */}
         <div className="camera-frame mb-6 fade-up fade-up-2">
@@ -116,14 +118,7 @@ export default function AnalyzePage() {
             <img src={photo} alt="Your selfie" className="w-full h-full object-cover" />
           ) : cameraOn ? (
             <>
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-                style={{ transform: "scaleX(-1)" }}
-              />
+              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{ transform: "scaleX(-1)" }} />
               <div className="camera-guide" />
             </>
           ) : (
@@ -140,61 +135,81 @@ export default function AnalyzePage() {
           <p className="text-coral text-sm mb-4 text-center max-w-xs">{error}</p>
         )}
 
-        {/* Actions */}
-        <div className="flex flex-col items-center gap-3">
-          {!cameraOn && !photo && (
-            <>
-              <button onClick={startCamera} className="btn-primary">
-                Open Camera
-              </button>
-              <label className="btn-secondary cursor-pointer">
-                Upload Photo
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="user"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                />
+        {/* Step 1: Camera/Upload */}
+        {!showEmailStep && (
+          <div className="flex flex-col items-center gap-3">
+            {!cameraOn && !photo && (
+              <>
+                <button onClick={startCamera} className="btn-primary">Open Camera</button>
+                <label className="btn-secondary cursor-pointer">
+                  Upload Photo
+                  <input type="file" accept="image/*" capture="user" className="hidden" onChange={handleFileUpload} />
+                </label>
+              </>
+            )}
+            {cameraOn && !photo && stream && (
+              <button onClick={takePhoto} className="btn-primary px-12">Take Photo</button>
+            )}
+          </div>
+        )}
+
+        {/* Step 2: Email + Analyze */}
+        {showEmailStep && !analyzing && (
+          <div className="w-full max-w-sm fade-up">
+            <div className="glass p-6 mb-4">
+              <label className="block text-sm font-semibold text-fg mb-2">
+                Get your results via email (optional)
               </label>
-            </>
-          )}
-          {cameraOn && !photo && stream && (
-            <button onClick={takePhoto} className="btn-primary px-12">
-              Take Photo
-            </button>
-          )}
-          {photo && !analyzing && (
-            <div className="flex gap-3">
-              <button onClick={retake} className="btn-secondary">
-                Retake
-              </button>
+              <input
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-card-border bg-white text-fg text-sm focus:border-pink focus:outline-none transition-colors"
+              />
+              <p className="text-[10px] text-muted mt-2">
+                We&apos;ll send your personalized K-Beauty routine. No spam, ever.
+              </p>
+            </div>
+
+            <div className="flex gap-3 justify-center">
+              <button onClick={retake} className="btn-secondary">Retake</button>
               <button onClick={analyze} className="btn-primary">
-                Analyze My Skin
+                {email ? "Analyze & Send Results" : "Analyze My Skin"}
               </button>
             </div>
-          )}
-          {analyzing && (
-            <div className="text-center">
-              <div className="btn-primary pointer-events-none opacity-80">
-                <span className="inline-block animate-spin mr-2">⏳</span>
-                Analyzing your skin...
-              </div>
-              <p className="text-muted text-xs mt-3">This takes about 10 seconds</p>
+
+            {!email && (
+              <button onClick={analyze} className="block mx-auto mt-3 text-xs text-muted underline">
+                Skip — analyze without email
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Analyzing */}
+        {analyzing && (
+          <div className="text-center fade-up">
+            <div className="btn-primary pointer-events-none opacity-80">
+              <span className="inline-block animate-spin mr-2">⏳</span>
+              Analyzing your skin...
             </div>
-          )}
-        </div>
+            <p className="text-muted text-xs mt-3">This takes about 10 seconds</p>
+          </div>
+        )}
 
         {/* Tips */}
-        <div className="mt-10 glass p-5 max-w-sm w-full fade-up fade-up-3">
-          <h3 className="font-semibold text-fg text-sm mb-2">Tips for best results</h3>
-          <ul className="text-xs text-muted space-y-1">
-            <li>• Face the camera directly with a neutral expression</li>
-            <li>• Use natural lighting (avoid harsh shadows)</li>
-            <li>• Remove glasses and pull hair back</li>
-            <li>• No filters or makeup for accurate analysis</li>
-          </ul>
-        </div>
+        {!showEmailStep && (
+          <div className="mt-10 glass p-5 max-w-sm w-full fade-up fade-up-3">
+            <h3 className="font-semibold text-fg text-sm mb-2">Tips for best results</h3>
+            <ul className="text-xs text-muted space-y-1">
+              <li>• Face the camera directly with a neutral expression</li>
+              <li>• Use natural lighting (avoid harsh shadows)</li>
+              <li>• Remove glasses and pull hair back</li>
+              <li>• No filters or makeup for accurate analysis</li>
+            </ul>
+          </div>
+        )}
       </main>
     </div>
   );

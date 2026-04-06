@@ -78,7 +78,7 @@ export default function ResultPage() {
   return (
     <div className="gradient-result min-h-dvh">
       <header className="flex items-center justify-between px-6 py-4 max-w-2xl mx-auto w-full">
-        <Link href="/" className="text-xl font-bold text-pink-dk">Seoul<span className="text-coral">Face</span></Link>
+        <Link href="/" className="text-xl font-bold text-pink-dk">My<span className="text-coral">SeoulFace</span></Link>
         <Link href="/analyze" className="btn-secondary text-xs py-2 px-4">New Analysis</Link>
       </header>
 
@@ -239,7 +239,7 @@ export default function ResultPage() {
       </main>
 
       <footer className="text-center py-4 text-xs text-muted">
-        SeoulFace &copy; {new Date().getFullYear()} &middot; Product links may contain affiliate references
+        MySeoulFace &copy; {new Date().getFullYear()} &middot; Product links may contain affiliate references
       </footer>
     </div>
   );
