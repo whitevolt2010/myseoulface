@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -8,26 +8,40 @@ export default function AnalyzePage() {
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [cameraOn, setCameraOn] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
 
-  const startCamera = useCallback(async () => {
+  // stream이 바뀌면 video에 연결
+  useEffect(() => {
+    if (stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [stream]);
+
+  // 컴포넌트 언마운트 시 카메라 정리
+  useEffect(() => {
+    return () => {
+      stream?.getTracks().forEach((t) => t.stop());
+    };
+  }, [stream]);
+
+  const startCamera = async () => {
+    setCameraOn(true);
+    setError("");
     try {
       const s = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: { ideal: 720 }, height: { ideal: 960 } },
       });
       setStream(s);
-      if (videoRef.current) {
-        videoRef.current.srcObject = s;
-        videoRef.current.play();
-      }
-      setError("");
     } catch {
-      setError("Camera access denied. Please allow camera permission.");
+      setError("Camera access denied. Please allow camera permission and reload.");
+      setCameraOn(false);
     }
-  }, []);
+  };
 
   const takePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -36,11 +50,15 @@ export default function AnalyzePage() {
     c.width = v.videoWidth;
     c.height = v.videoHeight;
     const ctx = c.getContext("2d")!;
+    // 좌우 반전 (미러)
+    ctx.translate(c.width, 0);
+    ctx.scale(-1, 1);
     ctx.drawImage(v, 0, 0);
     const dataUrl = c.toDataURL("image/jpeg", 0.85);
     setPhoto(dataUrl);
     stream?.getTracks().forEach((t) => t.stop());
     setStream(null);
+    setCameraOn(false);
   };
 
   const retake = () => {
@@ -51,6 +69,7 @@ export default function AnalyzePage() {
   const analyze = async () => {
     if (!photo) return;
     setAnalyzing(true);
+    setError("");
 
     try {
       const res = await fetch("/api/analyze", {
@@ -69,6 +88,18 @@ export default function AnalyzePage() {
     }
   };
 
+  // 파일 업로드 대안 (카메라 접근 안 될 때)
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPhoto(reader.result as string);
+      setCameraOn(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="gradient-hero min-h-dvh flex flex-col">
       <header className="flex items-center justify-between px-6 py-4">
@@ -83,15 +114,22 @@ export default function AnalyzePage() {
         <div className="camera-frame mb-6 fade-up fade-up-2">
           {photo ? (
             <img src={photo} alt="Your selfie" className="w-full h-full object-cover" />
-          ) : stream ? (
+          ) : cameraOn ? (
             <>
-              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{ transform: "scaleX(-1)" }} />
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+                style={{ transform: "scaleX(-1)" }}
+              />
               <div className="camera-guide" />
             </>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-pink-lt/20 to-lavender/20">
               <span className="text-6xl mb-4">📸</span>
-              <p className="text-muted text-sm">Tap below to start camera</p>
+              <p className="text-muted text-sm">Take a selfie or upload a photo</p>
             </div>
           )}
         </div>
@@ -99,30 +137,42 @@ export default function AnalyzePage() {
         <canvas ref={canvasRef} className="hidden" />
 
         {error && (
-          <p className="text-coral text-sm mb-4 text-center">{error}</p>
+          <p className="text-coral text-sm mb-4 text-center max-w-xs">{error}</p>
         )}
 
         {/* Actions */}
-        <div className="flex gap-3">
-          {!stream && !photo && (
-            <button onClick={startCamera} className="btn-primary">
-              Open Camera
-            </button>
+        <div className="flex flex-col items-center gap-3">
+          {!cameraOn && !photo && (
+            <>
+              <button onClick={startCamera} className="btn-primary">
+                Open Camera
+              </button>
+              <label className="btn-secondary cursor-pointer">
+                Upload Photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="user"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+              </label>
+            </>
           )}
-          {stream && !photo && (
+          {cameraOn && !photo && stream && (
             <button onClick={takePhoto} className="btn-primary px-12">
               Take Photo
             </button>
           )}
           {photo && !analyzing && (
-            <>
+            <div className="flex gap-3">
               <button onClick={retake} className="btn-secondary">
                 Retake
               </button>
               <button onClick={analyze} className="btn-primary">
                 Analyze My Skin
               </button>
-            </>
+            </div>
           )}
           {analyzing && (
             <div className="text-center">
