@@ -14,12 +14,17 @@ interface SkinResult {
   concerns: Array<{ name: string; severity: string; zone?: string; description: string }>;
   analysis: Record<string, number>;
   routine: Array<{
+    rank: number;
     step: string;
     productName: string;
     brand: string;
     reason: string;
     priceRange: string;
     keyIngredient: string;
+    oliveyoungRank?: string | null;
+    globalRank?: string;
+    rating?: number;
+    reviewCount?: string;
   }>;
   devices?: Array<{
     name: string;
@@ -228,37 +233,79 @@ export default function ResultPage() {
           </div>
         </div>
 
-        {/* K-Beauty Routine — 핵심 (제휴 링크) */}
+        {/* K-Beauty Top 5 — 순위별 제품 추천 */}
         <div className="mb-6 fade-up fade-up-3">
-          <h3 className="font-bold text-fg text-lg mb-1">Your K-Beauty Routine</h3>
-          <p className="text-muted text-xs mb-4">Personalized products for your skin</p>
+          <h3 className="font-bold text-fg text-lg mb-1">Top 5 Products For You</h3>
+          <p className="text-muted text-xs mb-4">Ranked by priority — #1 is your must-have</p>
 
           <div className="space-y-3">
-            {result.routine.map((item, i) => (
-              <a
-                key={i}
-                href={getAffiliateLink(item.brand, item.productName)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="product-card block"
-              >
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">{stepEmoji[item.step] || "🧴"}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[10px] font-medium text-pink-dk uppercase tracking-wider">{item.step}</span>
-                      <span className="text-[10px] text-muted">{item.priceRange}</span>
+            {[...result.routine]
+              .sort((a, b) => (a.rank || 99) - (b.rank || 99))
+              .slice(0, 5)
+              .map((item) => {
+                const rank = item.rank || 0;
+                const isTop = rank === 1;
+                return (
+                  <a
+                    key={rank}
+                    href={getAffiliateLink(item.brand, item.productName)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`product-card block relative overflow-hidden ${isTop ? "ring-2 ring-coral/40" : ""}`}
+                  >
+                    {isTop && (
+                      <div className="absolute top-0 right-0 bg-coral text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg">
+                        MUST HAVE
+                      </div>
+                    )}
+                    <div className="flex items-start gap-3">
+                      {/* 순위 뱃지 */}
+                      <div className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm ${
+                        rank === 1 ? "bg-coral text-white" :
+                        rank === 2 ? "bg-pink-dk text-white" :
+                        rank === 3 ? "bg-pink text-white" :
+                        "bg-card-border text-muted"
+                      }`}>
+                        #{rank}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-[10px] font-medium text-pink-dk uppercase tracking-wider">{item.step}</span>
+                          <span className="text-[10px] text-muted">{item.priceRange}</span>
+                        </div>
+                        <p className="font-semibold text-fg text-sm">{item.brand} — {item.productName}</p>
+
+                        {/* 올리브영 + 글로벌 랭킹 + 별점 */}
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          {item.oliveyoungRank && (
+                            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-[#1a8a3e]/10 text-[#1a8a3e] font-medium">
+                              🫒 {item.oliveyoungRank}
+                            </span>
+                          )}
+                          {item.globalRank && (
+                            <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-gold/10 text-gold font-medium">
+                              🌍 {item.globalRank}
+                            </span>
+                          )}
+                          {item.rating && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] text-fg/60">
+                              {"★".repeat(Math.floor(item.rating))}{"☆".repeat(5 - Math.floor(item.rating))}
+                              {" "}{item.rating}
+                              {item.reviewCount && <span className="text-muted ml-0.5">({item.reviewCount} reviews)</span>}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-xs text-fg/70 mt-1.5 leading-relaxed">{item.reason}</p>
+                        <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full bg-mint/10 text-mint font-medium">
+                          {item.keyIngredient}
+                        </span>
+                      </div>
+                      <span className="text-muted text-sm mt-1">→</span>
                     </div>
-                    <p className="font-semibold text-fg text-sm truncate">{item.brand} — {item.productName}</p>
-                    <p className="text-xs text-fg/70 mt-1 leading-relaxed">{item.reason}</p>
-                    <span className="inline-block mt-2 text-[10px] px-2 py-0.5 rounded-full bg-mint/10 text-mint font-medium">
-                      {item.keyIngredient}
-                    </span>
-                  </div>
-                  <span className="text-muted text-sm mt-1">→</span>
-                </div>
-              </a>
-            ))}
+                  </a>
+                );
+              })}
           </div>
         </div>
 

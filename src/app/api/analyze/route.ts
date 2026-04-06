@@ -71,12 +71,17 @@ RESPOND ONLY WITH VALID JSON:
   },
   "routine": [
     {
+      "rank": 1,
       "step": "Oil Cleanser" | "Water Cleanser" | "Exfoliant" | "Toner" | "Essence" | "Serum" | "Ampoule" | "Moisturizer" | "Sunscreen" | "Eye Cream" | "Spot Treatment" | "Sleeping Mask",
       "productName": "exact real product name",
       "brand": "brand name",
       "reason": "DETAILED: 'Your [zone] shows [concern]. [Ingredient] in this product works by [mechanism] to [benefit]. You should see improvement in [timeframe].'",
       "priceRange": "$XX-XX",
-      "keyIngredient": "ingredient name — what it does for their skin"
+      "keyIngredient": "ingredient name — what it does for their skin",
+      "oliveyoungRank": "Olive Young ranking, e.g. '#1 Toner' or 'Hall of Fame' or 'Awards 2024 Winner' or null if not applicable",
+      "globalRank": "Amazon/global ranking, e.g. 'Amazon #1 K-Beauty Serum' or '50M+ sold worldwide' or 'TikTok viral 200M views'",
+      "rating": 4.5,
+      "reviewCount": "14K+"
     }
   ],
   "devices": [
@@ -101,10 +106,15 @@ RESPOND ONLY WITH VALID JSON:
 }
 
 PRODUCT RULES:
-- 7-10 products for a complete Korean skincare routine
+- Return EXACTLY 5 products, ranked 1-5 by priority/importance for THIS person's skin
+- Rank 1 = the single most impactful product they should buy first
 - ONLY real, currently-available Korean beauty products
 - Brands: COSRX, Innisfree, Laneige, Sulwhasoo, Missha, Dear Klairs, Some By Mi, Beauty of Joseon, Torriden, Round Lab, Anua, Medicube, Dr.G, Isntree, Banila Co, Heimish, Etude House, SKIN1004, Purito, Neogen, By Wishtrend, Benton, Hada Labo
 - DETAILED reason for each product — connect ingredient → mechanism → their specific concern → expected result
+- oliveyoungRank: Olive Young (Korea's #1 beauty retailer) ranking. Use REAL data — e.g. "올리브영 토너 1위", "Olive Young Hall of Fame", "Olive Young Awards 2024 Best Serum", "올리브영 누적판매 300만개". Set null if product is not sold on Olive Young.
+- globalRank: Amazon Best Seller, TikTok viral, global sales. Be factual — e.g. "Amazon #1 K-Beauty Serums", "50M+ sold globally", "TikTok 200M+ views". Mix sources: Amazon, Sephora, TikTok, Allure Best of Beauty, etc.
+- rating: realistic average rating (3.8-4.9 range)
+- reviewCount: approximate Amazon/global review count like "14K+", "52K+", "3.2K+"
 
 DEVICE RULES:
 - 2-3 devices that address their top concerns
