@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import ChatWidget from "@/components/ChatWidget";
 
 export const metadata: Metadata = {
   title: "MySeoulFace — AI K-Beauty Skin Analysis",
@@ -25,23 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-dvh flex flex-col">
         {children}
-        {/* Tawk.to 실시간 채팅 — 무료 */}
-        {/* TODO: https://www.tawk.to 에서 가입 후 실제 위젯 코드로 교체 */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-              (function(){
-                var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-                s1.async=true;
-                s1.src='https://embed.tawk.to/69d35cc8b137951c367ff6be/default';
-                s1.charset='UTF-8';
-                s1.setAttribute('crossorigin','*');
-                s0.parentNode.insertBefore(s1,s0);
-              })();
-            `,
-          }}
-        />
+        <ChatWidget />
       </body>
     </html>
   );
