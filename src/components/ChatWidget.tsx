@@ -75,7 +75,7 @@ function getAutoReply(text: string): string {
 }
 
 export default function ChatWidget() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -92,6 +92,27 @@ export default function ChatWidget() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const quickSend = (text: string) => {
+    const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const userMsg: Message = { id: Date.now().toString(), text, from: "user", time: now };
+    setMessages((prev) => [...prev, userMsg]);
+    setTimeout(() => {
+      const reply = getAutoReply(text);
+      const botMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        text: reply,
+        from: "bot",
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      setMessages((prev) => [...prev, botMsg]);
+    }, 600);
+    fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text }),
+    }).catch(() => {});
+  };
 
   const sendMessage = () => {
     if (!input.trim()) return;
@@ -125,66 +146,94 @@ export default function ChatWidget() {
 
   return (
     <>
-      {/* Chat bubble */}
-      <button
-        onClick={() => setOpen(!open)}
-        className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full bg-gradient-to-r from-pink to-coral text-white text-2xl flex items-center justify-center shadow-lg hover:shadow-xl transition-all hover:scale-105"
-      >
-        {open ? "✕" : "💬"}
-      </button>
-
-      {/* Unread badge */}
-      {!open && (
-        <span className="fixed bottom-16 right-5 z-50 w-5 h-5 rounded-full bg-coral text-white text-[10px] flex items-center justify-center font-bold pointer-events-none">
-          1
-        </span>
+      {/* Minimize button (when open) */}
+      {open && (
+        <button
+          onClick={() => setOpen(false)}
+          className="fixed bottom-5 right-5 z-50 w-10 h-10 rounded-full bg-fg/10 text-fg text-sm flex items-center justify-center hover:bg-fg/20 transition-all"
+        >
+          ▾
+        </button>
       )}
 
-      {/* Chat window */}
+      {/* Expand button (when closed) */}
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          className="fixed bottom-5 right-5 z-50 flex items-center gap-2 px-5 py-3 rounded-full bg-gradient-to-r from-pink to-coral text-white shadow-lg hover:shadow-xl transition-all hover:scale-105"
+        >
+          <span className="text-lg">💬</span>
+          <span className="font-semibold text-sm">Chat with K-Beauty Advisor</span>
+          <span className="w-5 h-5 rounded-full bg-white/30 text-[10px] flex items-center justify-center font-bold">1</span>
+        </button>
+      )}
+
+      {/* Chat window — LARGE */}
       {open && (
-        <div className="fixed bottom-20 right-5 z-50 w-[340px] max-h-[480px] rounded-2xl overflow-hidden shadow-2xl border border-card-border flex flex-col bg-white">
+        <div className="fixed bottom-16 right-3 left-3 sm:left-auto sm:right-5 sm:w-[420px] z-50 h-[70vh] max-h-[680px] rounded-2xl overflow-hidden shadow-2xl border border-card-border flex flex-col bg-white">
           {/* Header */}
-          <div className="px-4 py-3 bg-gradient-to-r from-pink to-coral text-white flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm">🧴</div>
-            <div>
-              <p className="font-bold text-sm">MySeoulFace</p>
-              <p className="text-[10px] opacity-80 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-300 inline-block"></span>
-                K-Beauty Advisor • Online
+          <div className="px-5 py-4 bg-gradient-to-r from-pink to-coral text-white flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-lg">🧴</div>
+            <div className="flex-1">
+              <p className="font-bold">MySeoulFace</p>
+              <p className="text-xs opacity-80 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-green-300 inline-block"></span>
+                K-Beauty Skin Advisor • Online
               </p>
             </div>
+            <button onClick={() => setOpen(false)} className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm hover:bg-white/30">
+              ✕
+            </button>
+          </div>
+
+          {/* Quick actions */}
+          <div className="px-4 py-2 bg-pink-lt/10 border-b border-card-border flex gap-2 overflow-x-auto">
+            {["Routine", "Acne", "Dry skin", "Devices", "Foods"].map((q) => (
+              <button
+                key={q}
+                onClick={() => quickSend(q)}
+                className="whitespace-nowrap px-3 py-1 rounded-full bg-white border border-card-border text-xs text-fg hover:border-pink transition-colors"
+              >
+                {q}
+              </button>
+            ))}
           </div>
 
           {/* Messages */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3 max-h-[320px] bg-[#FAFAF8]">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#FAFAF8]">
             {messages.map((m) => (
               <div key={m.id} className={`flex ${m.from === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[85%] px-3 py-2 rounded-2xl text-[13px] leading-relaxed whitespace-pre-wrap ${
+                {m.from === "bot" && (
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-r from-pink to-coral flex items-center justify-center text-[10px] text-white mr-2 mt-1 flex-shrink-0">
+                    🧴
+                  </div>
+                )}
+                <div className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
                   m.from === "user"
                     ? "bg-gradient-to-r from-pink to-coral text-white rounded-br-sm"
                     : "bg-white border border-card-border text-fg rounded-bl-sm shadow-sm"
                 }`}>
                   {m.text}
-                  <p className={`text-[9px] mt-1 ${m.from === "user" ? "text-white/50" : "text-muted"}`}>{m.time}</p>
+                  <p className={`text-[9px] mt-1.5 ${m.from === "user" ? "text-white/50" : "text-muted"}`}>{m.time}</p>
                 </div>
               </div>
             ))}
           </div>
 
           {/* Input */}
-          <div className="flex gap-2 p-3 border-t border-card-border bg-white">
+          <div className="flex gap-2 p-4 border-t border-card-border bg-white">
             <input
               type="text"
-              placeholder="Ask about skincare..."
+              placeholder="Ask about skincare, products, routines..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-              className="flex-1 px-3 py-2 rounded-full border border-card-border text-sm text-fg bg-[#FAFAF8] focus:border-pink focus:outline-none"
+              className="flex-1 px-4 py-3 rounded-full border border-card-border text-sm text-fg bg-[#FAFAF8] focus:border-pink focus:outline-none"
             />
             <button
               onClick={sendMessage}
               disabled={!input.trim()}
-              className="w-9 h-9 rounded-full bg-gradient-to-r from-pink to-coral text-white text-sm flex items-center justify-center disabled:opacity-30"
+              className="w-11 h-11 rounded-full bg-gradient-to-r from-pink to-coral text-white text-base flex items-center justify-center disabled:opacity-30"
             >
               →
             </button>
