@@ -1,7 +1,7 @@
 import { google } from "googleapis";
 
 const SPREADSHEET_ID = "1iJT6frVXFwUd6X6id_Ff6mvxkggmxdKqAeVh1a5F3O8";
-const SHEET_NAME = "Sheet1";
+const SHEET_NAME = "시트1";
 
 function getAuth() {
   const credentials = JSON.parse(
