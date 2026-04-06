@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest } from "next/server";
+import { saveAnalysisData } from "@/lib/storage";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -45,7 +46,7 @@ Be specific with real product names. Be encouraging and positive in tone.`;
 
 export async function POST(request: NextRequest) {
   try {
-    const { image } = await request.json();
+    const { image, consent } = await request.json();
 
     if (!image) {
       return Response.json({ error: "No image provided" }, { status: 400 });
@@ -76,6 +77,12 @@ export async function POST(request: NextRequest) {
     jsonStr = jsonStr.trim();
 
     const data = JSON.parse(jsonStr);
+
+    // Save to GCS if user consented
+    if (consent) {
+      saveAnalysisData(image, data).catch(() => {});
+    }
+
     return Response.json(data);
   } catch (error) {
     console.error("Analysis error:", error);
