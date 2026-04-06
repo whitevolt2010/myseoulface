@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
 import "./globals.css";
+import TawkTo from "@/components/TawkTo";
 
 export const metadata: Metadata = {
   title: "MySeoulFace — AI K-Beauty Skin Analysis",
@@ -26,11 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="min-h-dvh flex flex-col">
         {children}
-        <Script
-          id="tawk-to"
-          strategy="afterInteractive"
-          src="https://embed.tawk.to/69d35cc8b137951c367ff6be/1jlgq4s2g"
-        />
+        <TawkTo />
       </body>
     </html>
   );
