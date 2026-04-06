@@ -375,35 +375,121 @@ export default function ResultPage() {
           </ul>
         </div>
 
-        {/* Share + CTA */}
+        {/* Share Card + CTA */}
         <div className="text-center fade-up fade-up-4">
-          <button
-            onClick={() => {
-              if (navigator.share) {
-                navigator.share({
-                  title: "My SeoulFace Skin Analysis",
-                  text: `My skin score is ${result.overallScore}/100! Get your free K-Beauty skin analysis:`,
-                  url: window.location.origin,
+          <h3 className="font-bold text-fg mb-4">Share Your Results</h3>
+
+          {/* Share card preview */}
+          <div className="inline-block mb-4">
+            <canvas id="share-card" className="hidden" />
+            <div
+              id="share-preview"
+              className="w-[320px] mx-auto rounded-2xl overflow-hidden shadow-lg border border-card-border"
+              style={{ background: "linear-gradient(135deg, #FFF5F8 0%, #FDF2F0 30%, #F5F0FF 70%, #F0F8F5 100%)" }}
+            >
+              <div className="p-6 text-center">
+                <p className="text-xs text-pink-dk font-medium mb-1">MySeoulFace</p>
+                <p className="text-xs text-muted mb-4">AI K-Beauty Skin Analysis</p>
+                <div className="w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden border-3 border-pink-lt">
+                  <img src={result.photo} alt="" className="w-full h-full object-cover" />
+                </div>
+                <div className="score-badge text-lg w-12 h-12 mx-auto mb-2">{result.overallScore}</div>
+                <p className="text-xs text-muted mb-3">Skin Score</p>
+                <div className="flex justify-center gap-4 mb-3">
+                  <div className="text-center">
+                    <p className="text-[10px] text-muted">Type</p>
+                    <p className="text-xs font-bold text-fg capitalize">{result.skinType}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-muted">Skin Age</p>
+                    <p className="text-xs font-bold text-fg">{result.skinAge}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-muted">Tone</p>
+                    <p className="text-xs font-bold text-fg capitalize">{result.skinTone}</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap justify-center gap-1 mb-3">
+                  {result.concerns.slice(0, 3).map((c, i) => (
+                    <span key={i} className="text-[9px] px-2 py-0.5 rounded-full bg-coral/10 text-coral font-medium">
+                      {c.name}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[10px] text-pink-dk font-medium">Get your free analysis at seoulface.vercel.app</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <button
+              onClick={() => {
+                // Generate share card image from the preview div
+                const preview = document.getElementById("share-preview");
+                if (!preview) return;
+
+                import("html2canvas").then(({ default: html2canvas }) => {
+                  html2canvas(preview, { scale: 2, backgroundColor: null }).then((canvas) => {
+                    canvas.toBlob((blob) => {
+                      if (!blob) return;
+                      const file = new File([blob], "myseoulface-result.png", { type: "image/png" });
+
+                      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+                        navigator.share({
+                          title: "My SeoulFace Skin Analysis",
+                          text: `My skin score is ${result.overallScore}/100! Get your free K-Beauty skin analysis:`,
+                          files: [file],
+                        });
+                      } else {
+                        // Fallback: download image
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = "myseoulface-result.png";
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }
+                    }, "image/png");
+                  });
+                }).catch(() => {
+                  // Fallback if html2canvas fails
+                  if (navigator.share) {
+                    navigator.share({
+                      title: "My SeoulFace Skin Analysis",
+                      text: `My skin score is ${result.overallScore}/100! Get your free K-Beauty skin analysis:`,
+                      url: window.location.origin,
+                    });
+                  }
                 });
-              } else {
+              }}
+              className="btn-primary"
+            >
+              Share My Card
+            </button>
+            <button
+              onClick={() => {
                 navigator.clipboard.writeText(
                   `My skin score is ${result.overallScore}/100! Get your free K-Beauty skin analysis: ${window.location.origin}`
                 );
-                alert("Link copied!");
-              }
-            }}
-            className="btn-secondary mb-3"
-          >
-            Share My Results
-          </button>
-          <p className="text-[10px] text-muted">
+                const btn = document.activeElement as HTMLButtonElement;
+                if (btn) { btn.textContent = "Copied!"; setTimeout(() => { btn.textContent = "Copy Link"; }, 2000); }
+              }}
+              className="btn-secondary text-sm"
+            >
+              Copy Link
+            </button>
+          </div>
+          <p className="text-[10px] text-muted mt-3">
             Share with friends and discover K-Beauty together
           </p>
         </div>
       </main>
 
       <footer className="text-center py-4 text-xs text-muted">
-        MySeoulFace &copy; {new Date().getFullYear()} &middot; Product links may contain affiliate references
+        <p>MySeoulFace &copy; {new Date().getFullYear()} &middot; Product links may contain affiliate references</p>
+        <p className="mt-1">
+          <a href="/privacy" className="underline hover:text-fg">Privacy Policy</a>
+        </p>
       </footer>
     </div>
   );

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import TawkTo from "@/components/TawkTo";
+import Analytics from "@/components/Analytics";
 
 export const metadata: Metadata = {
   title: "MySeoulFace — AI K-Beauty Skin Analysis",
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh flex flex-col">
         {children}
         <TawkTo />
+        <Analytics />
       </body>
     </html>
   );

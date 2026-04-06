@@ -154,6 +154,10 @@ export default function AnalyzePage() {
                 <li>• No filters or makeup for accurate analysis</li>
               </ul>
             </div>
+
+            <p className="mt-4 text-[11px] text-muted text-center flex items-center gap-1.5">
+              🔒 Your photo is analyzed in real-time and never stored on our servers
+            </p>
           </>
         )}
 
